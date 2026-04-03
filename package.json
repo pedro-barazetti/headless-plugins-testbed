@@ -1,0 +1,49 @@
+{
+  "name": "Zyte-headless-plugins-testbed",
+  "version": "1.0.0",
+  "description": "Zyte headless plugin testbed (Playwright / Selenium / Puppeteer + Headless Proxy)",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run typecheck",
+
+    "playwright-proxy": "ts-node headless-proxy/playwright_proxy.ts",
+    "selenium-proxy": "ts-node headless-proxy/selenium_proxy.ts",
+    "selenium-proxy-csv": "ts-node headless-proxy/selenium_proxy_csv.ts",
+
+    "clustrmaps": "ts-node playwright-2captcha/clustrmaps.ts",
+    "freepeopledirectory": "ts-node playwright-2captcha/freepeopledirectory.ts",
+    "peoplefinders": "ts-node playwright-2captcha/peoplefinders.ts",
+    "publicdatausa": "ts-node playwright-2captcha/publicdatausa.ts",
+    "usphonebook": "ts-node playwright-2captcha/usphonebook.ts",
+    "beenverified": "ts-node playwright-2captcha/beenverified.ts",
+    "voterrecords": "ts-node playwright-2captcha/voterrecords.ts",
+    "nuwber": "ts-node playwright-2captcha/nuwber.ts",
+
+    "platpat": "ts-node puppeteer/platpat.ts",
+    "informdata": "ts-node puppeteer/informdata_courts.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@tsconfig/node20": "^20.1.6",
+    "@types/node": "^24.6.0",
+    "@types/selenium-webdriver": "^4.35.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "@2captcha/captcha-solver": "^1.3.0",
+    "dotenv": "^17.2.3",
+    "playwright": "^1.55.1",
+    "playwright-extra": "^4.3.6",
+    "puppeteer": "^24.32.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "selenium-webdriver": "^4.26.0",
+    "zyte-smartproxy-playwright": "^1.0.20",
+    "zyte-smartproxy-plugin": "^1.0.8"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2021",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "strict": true,
+    "useUnknownInCatchVariables": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "dist",
+    "types": ["node"],
+    "typeRoots": ["./types", "./node_modules/@types"],
+    "lib": ["ES2021", "DOM"],
+    "resolveJsonModule": true
+  },
+  "ts-node": {
+    "files": true,
+    "compilerOptions": {
+      "typeRoots": ["./types", "./node_modules/@types"]
+    }
+  },
+  "include": ["src", "types", "playwright-2captcha/**/*.ts", "headless-proxy/selenium_proxy.ts", "puppeteer/platpat.ts", "headless-proxy/playwright_proxy.ts", "puppeteer/informdata_courts.ts"],
+  "exclude": ["node_modules", "dist"]
+}

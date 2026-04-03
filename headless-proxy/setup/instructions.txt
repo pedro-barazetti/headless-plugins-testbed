@@ -1,0 +1,16 @@
+1. Clone repository: https://github.com/zytedata/zyte-smartproxy-headless-proxy
+
+2. Replace the existing certificate (ca.crt) and configuration file (config.toml) with the files from this directory
+
+3. Add your API KEY in the config.toml file
+
+4. follow instructions to compile and run locally (prebuilt binaries didn't work, due to expired certificate):
+$ make docker
+$ docker run --name crawlera-headless-proxy -p 3128:3128 -p 3130:3130 crawlera-headless-proxy
+
+Docs
+Install and Usage Instructions: https://docs.zyte.com/smart-proxy-manager/headless.html
+
+Project Readme: https://github.com/zytedata/zyte-smartproxy-headless-proxy
+
+Zyte CA Certificate: https://docs.zyte.com/misc/ca.html#ca
