@@ -9,7 +9,7 @@
 
     "playwright-proxy": "ts-node headless-proxy/playwright_proxy.ts",
     "selenium-proxy": "ts-node headless-proxy/selenium_proxy.ts",
-    "selenium-proxy-csv": "ts-node headless-proxy/selenium_proxy_csv.ts",
+    "selenium-proxy-csv": "ts-node headless-proxy/selenium_proxy_csv_input.ts",
 
     "clustrmaps": "ts-node playwright-2captcha/clustrmaps.ts",
     "freepeopledirectory": "ts-node playwright-2captcha/freepeopledirectory.ts",

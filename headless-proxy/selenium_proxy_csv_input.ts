@@ -4,7 +4,9 @@ import { resolve } from "node:path";
 import { Builder } from "selenium-webdriver";
 import chrome from "selenium-webdriver/chrome";
 
-const URLS_CSV_PATH = resolve(__dirname, "test-urls.csv");
+const URLS_CSV_PATH = process.env.URLS_CSV_PATH
+  ? resolve(process.cwd(), process.env.URLS_CSV_PATH)
+  : resolve(process.cwd(), "input", "test-urls.csv");
 const PROXY_SERVER = "http://localhost:3128";
 
 function parseRequestedUrls(csvContent: string): string[] {
