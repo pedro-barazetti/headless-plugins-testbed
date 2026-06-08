@@ -133,9 +133,6 @@ direct_access_hostpath_regexps = [
 # A full list can be found here:
 # https://doc.scrapinghub.com/crawlera.html#request-headers
 [xheaders]
-X-Ixroute-Dist = "crawlera=2"
 # no-bancheck = "1"
 cookies = "disable"
 profile = "desktop"
-
-api_key = "4fa69cfcb96c4cbf856dd613d1f83172"
