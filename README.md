@@ -43,6 +43,9 @@ Some integrations are still in progress. The repository aims to centralize exper
 - `npm run playwright-proxy` → Playwright smoke test via proxy
 - `npm run selenium-proxy` → Selenium smoke test via proxy
 - `npm run selenium-proxy-csv` → Selenium smoke test using URL list input
+- `npm run splash-proxy` → Splash smoke test through the legacy Crawlera proxy
+- `npm run splash-headless-proxy` → Splash through `zyte-smartproxy-headless-proxy`
+- `npm run splash-compare-headless-proxies` → Compare default Crawlera and Twindolphin side by side
 - `npm run clustrmaps` → Playwright + Zyte Smart Proxy flow (Cloudflare Turnstile)
 - `npm run freepeopledirectory` → Playwright + Zyte Smart Proxy flow
 - `npm run peoplefinders` → Playwright + Zyte Smart Proxy flow (Turnstile + reCAPTCHA Enterprise)
@@ -82,6 +85,86 @@ These scripts do **not** use the Zyte Smart Proxy plugins. They connect to your 
 Env vars used (optional overrides):
 
 - These scripts currently use hardcoded defaults in code (`http://localhost:3128`, target URLs, wait timings).
+
+### Splash + Crawlera proxy
+
+The Splash runner uses a local Splash 3.5 container and a `crawlera` Splash proxy profile. The custom image installs the Crawlera CA certificate and creates the profile at startup from `CRAWLERA_HOST`, `CRAWLERA_PORT`, and `CRAWLERA_API_KEY`, so credentials are not sent to or logged by the TypeScript tester. The navigation sends `X-Crawlera-No-Bancheck: 1`, `X-Crawlera-Profile: pass`, and `X-Crawlera-Cookies: disable`.
+
+Build and start Splash from the repository root:
+
+```bash
+npm run splash-build
+npm run splash-start
+```
+
+Then run the tester:
+
+```bash
+npm run splash-proxy
+```
+
+Stop and remove the local Splash container with `npm run splash-stop`.
+
+By default, the tester visits `https://caselook.clevelandheightscourt.com/disclaimer/1823`, prints the target status/title/final URL, and writes HTML, PNG, and JSON metadata under `output/splash/`.
+
+Optional overrides:
+
+- `TARGET_URL`
+- `SPLASH_URL` (default: `http://localhost:8050`)
+- `SPLASH_PROXY_PROFILE` (default: `crawlera`)
+- `SPLASH_WAIT_SECONDS` (default: `5`)
+- `SPLASH_TIMEOUT_SECONDS` (default: `90`)
+- `SPLASH_OUTPUT_DIR` (default: `output/splash`)
+
+### Splash + zyte-smartproxy-headless-proxy
+
+This separate runner uses a two-container Docker Compose stack. Splash connects without authentication to `zyte-smartproxy-headless-proxy`, which handles Crawlera credentials, X-Headers, automatic browser sessions, and the upstream connection. The stack follows the upstream Docker configuration and reads the existing `CRAWLERA_*` values from `.env`.
+
+Start the stack and run the test:
+
+```bash
+npm run splash-headless-proxy-start
+npm run splash-headless-proxy
+```
+
+Services are exposed locally for diagnostics:
+
+- Splash: `http://localhost:8052`
+- Headless proxy: `http://localhost:3129`
+- Headless proxy stats: `http://localhost:3131/stats`
+
+Artifacts are written to `output/splash-headless-proxy/`. Stop and remove the stack with `npm run splash-headless-proxy-stop`.
+
+Optional runner overrides:
+
+- `TARGET_URL`
+- `SPLASH_HEADLESS_PROXY_URL` (default: `http://localhost:8052`)
+- `SPLASH_HEADLESS_PROXY_OUTPUT_DIR` (default: `output/splash-headless-proxy`)
+- `SPLASH_WAIT_SECONDS` (default: `5`)
+- `SPLASH_TIMEOUT_SECONDS` (default: `90`)
+
+### Side-by-side headless proxy comparison
+
+The comparison stack runs four containers simultaneously:
+
+- Default (`CRAWLERA_HOST`/`CRAWLERA_PORT`, falling back to `proxy.crawlera.com:8011`): Splash on `8052`, headless proxy on `3129`, stats on `3131`.
+- Twindolphin: Splash on `8053`, headless proxy on `3132`, stats on `3133`.
+
+Both headless proxy instances inject these defaults:
+
+- `X-Crawlera-No-Bancheck: 1`
+- `X-Crawlera-Cookies: disable`
+- `X-Crawlera-Profile: desktop`
+- `X-Crawlera-Timeout: 120000`
+
+Set `TWINDOLPHIN_CRAWLERA_API_KEY` in your shell or `.env`, then start and compare:
+
+```bash
+npm run splash-dual-proxy-start
+npm run splash-compare-headless-proxies
+```
+
+Individual runners are also available as `npm run splash-default-headless-proxy` and `npm run splash-twindolphin-headless-proxy`. Results are kept in separate folders under `output/`, with a summary at `output/splash-proxy-comparison/comparison.json`. Stop both pairs with `npm run splash-dual-proxy-stop`.
 
 ### Playwright “captcha/opt-out” flows (plugin-based)
 

@@ -1,0 +1,54 @@
+x-headless-proxy-command: &headless-proxy-command
+  - --xheader=no-bancheck=1
+  - --xheader=cookies=disable
+  - --xheader=profile=desktop
+  - --xheader=timeout=120000
+
+services:
+  headless-proxy-default:
+    image: zytedata/zyte-smartproxy-headless-proxy:latest
+    environment:
+      CRAWLERA_HEADLESS_APIKEY: ${CRAWLERA_API_KEY:?CRAWLERA_API_KEY is required}
+      CRAWLERA_HEADLESS_CHOST: ${CRAWLERA_HOST:-proxy.crawlera.com}
+      CRAWLERA_HEADLESS_CPORT: ${CRAWLERA_PORT:-8011}
+      CRAWLERA_HEADLESS_NOAUTOSESSIONS: ${CRAWLERA_NO_AUTO_SESSIONS:-false}
+      CRAWLERA_HEADLESS_CONCURRENCY: ${CRAWLERA_CONCURRENT_CONNECTIONS:-0}
+      CRAWLERA_HEADLESS_DONTVERIFY: ${CRAWLERA_DONT_VERIFY:-false}
+    command: *headless-proxy-command
+    ports:
+      - "127.0.0.1:3129:3128"
+      - "127.0.0.1:3131:3130"
+
+  splash-default:
+    image: splash-dual-headless-proxy:local
+    build:
+      context: ../..
+      dockerfile: splash/dual-headless-proxy/Dockerfile
+    depends_on:
+      - headless-proxy-default
+    ports:
+      - "127.0.0.1:8052:8050"
+
+  headless-proxy-twindolphin:
+    image: zytedata/zyte-smartproxy-headless-proxy:latest
+    environment:
+      CRAWLERA_HEADLESS_APIKEY: ${TWINDOLPHIN_CRAWLERA_API_KEY:?TWINDOLPHIN_CRAWLERA_API_KEY is required}
+      CRAWLERA_HEADLESS_CHOST: twindolphin.crawlera.com
+      CRAWLERA_HEADLESS_CPORT: 8011
+      CRAWLERA_HEADLESS_NOAUTOSESSIONS: ${CRAWLERA_NO_AUTO_SESSIONS:-false}
+      CRAWLERA_HEADLESS_CONCURRENCY: ${CRAWLERA_CONCURRENT_CONNECTIONS:-0}
+      CRAWLERA_HEADLESS_DONTVERIFY: ${CRAWLERA_DONT_VERIFY:-false}
+    command: *headless-proxy-command
+    ports:
+      - "127.0.0.1:3132:3128"
+      - "127.0.0.1:3133:3130"
+
+  splash-twindolphin:
+    image: splash-dual-headless-proxy:local
+    build:
+      context: ../..
+      dockerfile: splash/dual-headless-proxy/Dockerfile
+    depends_on:
+      - headless-proxy-twindolphin
+    ports:
+      - "127.0.0.1:8053:8050"

@@ -1,0 +1,28 @@
+services:
+  headless-proxy:
+    image: zytedata/zyte-smartproxy-headless-proxy:latest
+    environment:
+      CRAWLERA_HEADLESS_APIKEY: ${CRAWLERA_API_KEY:?CRAWLERA_API_KEY is required}
+      CRAWLERA_HEADLESS_CHOST: ${CRAWLERA_HOST:-proxy.crawlera.com}
+      CRAWLERA_HEADLESS_CPORT: ${CRAWLERA_PORT:-8011}
+      CRAWLERA_HEADLESS_NOAUTOSESSIONS: ${CRAWLERA_NO_AUTO_SESSIONS:-false}
+      CRAWLERA_HEADLESS_CONCURRENCY: ${CRAWLERA_CONCURRENT_CONNECTIONS:-0}
+      CRAWLERA_HEADLESS_DONTVERIFY: ${CRAWLERA_DONT_VERIFY:-false}
+    command:
+      - --xheader=no-bancheck=1
+      - --xheader=cookies=disable
+      - --xheader=profile=desktop
+      - --xheader=timeout=120000
+    ports:
+      - "127.0.0.1:3129:3128"
+      - "127.0.0.1:3131:3130"
+
+  splash:
+    image: splash-headless-proxy:local
+    build:
+      context: ../..
+      dockerfile: splash/headless-proxy/Dockerfile
+    depends_on:
+      - headless-proxy
+    ports:
+      - "127.0.0.1:8052:8050"

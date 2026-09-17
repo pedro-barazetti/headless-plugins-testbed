@@ -20,6 +20,6 @@
       "typeRoots": ["./types", "./node_modules/@types"]
     }
   },
-  "include": ["src", "types", "playwright-2captcha/**/*.ts", "headless-proxy/selenium_proxy.ts", "puppeteer/platpat.ts", "headless-proxy/playwright_proxy.ts", "puppeteer/informdata_courts.ts"],
+  "include": ["src", "types", "playwright-2captcha/**/*.ts", "headless-proxy/selenium_proxy.ts", "puppeteer/platpat.ts", "headless-proxy/playwright_proxy.ts", "puppeteer/informdata_courts.ts", "splash/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }
