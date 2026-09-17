@@ -1,0 +1,56 @@
+name: zyte-splash-compatibility
+
+services:
+  proxy-profile:
+    image: busybox:1.36
+    restart: "no"
+    environment:
+      ZYTE_API_KEY: "${API_KEY:?Set API_KEY in .env or in the shell}"
+    volumes:
+      - proxy-profile:/profiles
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        umask 077
+        test -n "$${ZYTE_API_KEY}"
+        printf '%s\n' \
+          '[proxy]' \
+          'host=api.zyte.com' \
+          'port=8011' \
+          "username=$${ZYTE_API_KEY}" \
+          'password=' \
+          'type=HTTP' \
+          '' \
+          '[rules]' \
+          'allowlist=.*' \
+          > /profiles/zyte-api.ini
+        chmod 0444 /profiles/zyte-api.ini
+
+  splash:
+    image: scrapinghub/splash:3.5
+    depends_on:
+      proxy-profile:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:${SPLASH_PORT:-8050}:8050"
+    volumes:
+      - proxy-profile:/etc/splash/proxy-profiles:ro
+    command:
+      - --max-timeout
+      - "120"
+      - --slots
+      - "${SPLASH_SLOTS:-4}"
+      - --disable-browser-caches
+    healthcheck:
+      test:
+        - CMD
+        - python3
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8050/_ping', timeout=2).read()
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  proxy-profile:

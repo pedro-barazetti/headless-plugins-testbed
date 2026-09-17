@@ -25,12 +25,15 @@ Some integrations are still in progress. The repository aims to centralize exper
 ## Quick start
 
 1. Create your environment file
+
    - Duplicate [.env.example](.env.example) to `.env` and set your keys.
 
 2. Install dependencies
+
    - `npm install`
 
 3. Set up the local headless proxy
+
    - Follow [headless-proxy/setup/instructions.txt](headless-proxy/setup/instructions.txt)
    - Replace config and cert in your local `zyte-smartproxy-headless-proxy` clone with files from [headless-proxy/setup](headless-proxy/setup)
    - Build and run the proxy locally
@@ -41,8 +44,13 @@ Some integrations are still in progress. The repository aims to centralize exper
 ## Available npm scripts
 
 - `npm run playwright-proxy` → Playwright smoke test via proxy
+- `npm run cdp:smoke` → Playwright smoke test via Zyte CDP WebSocket
+- `npm run cdp:freepeopledirectory` → FreePeopleDirectory form test via Zyte CDP WebSocket
+- `npm run cdp:beenverified` → BeenVerified form/CAPTCHA-boundary test via Zyte CDP WebSocket
+- `npm run cdp:thatsthem` → That’s Them screenshot test via Zyte CDP WebSocket
 - `npm run selenium-proxy` → Selenium smoke test via proxy
 - `npm run selenium-proxy-csv` → Selenium smoke test using URL list input
+- `npm run splash-proxy-test` → Splash + Zyte API proxy compatibility/performance test
 - `npm run clustrmaps` → Playwright + Zyte Smart Proxy flow (Cloudflare Turnstile)
 - `npm run freepeopledirectory` → Playwright + Zyte Smart Proxy flow
 - `npm run peoplefinders` → Playwright + Zyte Smart Proxy flow (Turnstile + reCAPTCHA Enterprise)
@@ -55,6 +63,34 @@ Some integrations are still in progress. The repository aims to centralize exper
 - `npm run informdata` → Puppeteer Extra + Zyte Smart Proxy plugin demo script
 
 If you add new runners, update this list.
+
+## Zyte CDP WebSocket tests
+
+These runners use Playwright's native `chromium.connectOverCDP()` API and the
+`API_KEY` from `.env`. The default endpoint is
+`wss://pop-us.browser.zyte.com/wss?ttl=180`; the longer lifetime allows time
+for external CAPTCHA solving. Override it with `ZYTE_CDP_ENDPOINT` if needed.
+
+```bash
+npm run cdp:smoke
+npm run cdp:freepeopledirectory
+npm run cdp:beenverified
+npm run cdp:thatsthem
+```
+
+The site-specific runners navigate, validate selectors, fill the available
+form, and save screenshots under `artifacts/cdp-websocket/`. They do not submit
+anything by default:
+
+- Set `FREEPEOPLEDIRECTORY_SUBMIT=true` to submit the configured profile URL.
+- Set `BEENVERIFIED_SUBMIT_SEARCH=true` to submit the search form and continue
+  to results. The CDP runner uses `TWO_CAPTCHA_KEY` to solve both the initial
+  Cloudflare page and the Turnstile check before Continue.
+- Set `BEENVERIFIED_STOP_AFTER_CONTINUE=true` to stop after Continue without
+  interacting with a search result.
+
+Use `FREEPEOPLEDIRECTORY_PROFILE_URL` and the `BEENVERIFIED_*` variables to
+replace the sample data when you intentionally test a real flow.
 
 ## Scripts (details)
 
@@ -82,6 +118,22 @@ These scripts do **not** use the Zyte Smart Proxy plugins. They connect to your 
 Env vars used (optional overrides):
 
 - These scripts currently use hardcoded defaults in code (`http://localhost:3128`, target URLs, wait timings).
+
+### Splash + Zyte API proxy mode
+
+The Splash integration test runs the same page directly and through Zyte API
+proxy mode. It evaluates a JavaScript DOM assertion and confirms proxy use from
+the `Zyte-Request-ID` response header captured in Splash's HAR, then reports
+success rate, p50/p95 latency, and median proxy overhead.
+
+```bash
+npm run splash-up
+npm run splash-proxy-test
+npm run splash-down
+```
+
+Docker and `API_KEY` in `.env` are required. See
+[splash/README.md](splash/README.md) for benchmark settings and interpretation.
 
 ### Playwright “captcha/opt-out” flows (plugin-based)
 
@@ -118,6 +170,8 @@ Per-script summary:
 - `npm run beenverified`
   - Runs [playwright-2captcha/beenverified.ts](playwright-2captcha/beenverified.ts).
   - Turnstile + hCaptcha helper example.
+  - Set `BEENVERIFIED_STOP_AFTER_CONTINUE=true` to verify both initial and
+    form-level Turnstile handling without selecting a result or submitting a removal.
 - `npm run voterrecords`
   - Runs [playwright-2captcha/voterrecords.ts](playwright-2captcha/voterrecords.ts).
   - Similar structure to beenverified; includes Turnstile + hCaptcha steps.

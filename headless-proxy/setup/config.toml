@@ -64,7 +64,7 @@ proxy_api_port = 3130
 crawlera_port = 8011
 
 # Which host is Crawlera placed on.
-crawlera_host = "solutions.crawlera.com"
+crawlera_host = "api.zyte.com"
 
 # What is API key for accessing Crawlera.
 api_key = ""

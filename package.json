@@ -6,13 +6,18 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "npm run typecheck",
-
+    "cdp:smoke": "ts-node cdp-websocket/smoke.ts",
+    "cdp:freepeopledirectory": "ts-node cdp-websocket/freepeopledirectory.ts",
+    "cdp:beenverified": "ts-node cdp-websocket/beenverified.ts",
+    "cdp:thatsthem": "ts-node cdp-websocket/thatsthem.ts",
     "playwright-proxy": "ts-node headless-proxy/playwright_proxy.ts",
     "playwright-proxy-csv": "ts-node headless-proxy/playwright_proxy_csv_input.ts",
     "selenium-proxy": "ts-node headless-proxy/selenium_proxy.ts",
     "selenium-proxy-csv": "ts-node headless-proxy/selenium_proxy_csv_input.ts",
     "puppeteer-proxy": "ts-node headless-proxy/puppeteer_proxy.ts",
-
+    "splash-up": "docker compose --env-file .env -f splash/compose.yaml up -d --wait",
+    "splash-proxy-test": "ts-node splash/zyte_api_proxy_compatibility.ts",
+    "splash-down": "docker compose --env-file .env -f splash/compose.yaml down -v",
     "clustrmaps": "ts-node playwright-2captcha/clustrmaps.ts",
     "freepeopledirectory": "ts-node playwright-2captcha/freepeopledirectory.ts",
     "peoplefinders": "ts-node playwright-2captcha/peoplefinders.ts",
@@ -21,7 +26,6 @@
     "beenverified": "ts-node playwright-2captcha/beenverified.ts",
     "voterrecords": "ts-node playwright-2captcha/voterrecords.ts",
     "nuwber": "ts-node playwright-2captcha/nuwber.ts",
-
     "platpat": "ts-node puppeteer/platpat.ts",
     "informdata": "ts-node puppeteer/informdata_courts.ts"
   },

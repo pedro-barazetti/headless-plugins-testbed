@@ -2,7 +2,11 @@ import 'dotenv/config';
 //@ts-ignore
 import { chromium, Browser, Page, BrowserContext } from 'zyte-smartproxy-playwright';
 import { normalizeUserAgent } from './utils/normalizeUserAgent';
-import { injectTurnstileScript, loadPageAndSolveTurnstile } from './utils/cloudflare-turnstile/turnstile';
+import {
+  injectTurnstileScript,
+  loadPageAndSolveTurnstile,
+  solveNextTurnstileChallenge,
+} from './utils/cloudflare-turnstile/turnstile';
 import { solveHCaptcha } from './utils/hcaptcha';
 
 interface PersonalInfo {
@@ -23,14 +27,14 @@ class BeenVerifiedOptout {
   async launch() {
     console.log('🚀 Starting Beenverified Opt-Out process...');
     
-    const apiKey = process.env.SPM_API_KEY;
+    const apiKey = process.env.API_KEY;
     if (!apiKey) {
       throw new Error('Missing API_KEY in environment. Create a .env file with API_KEY=your_key');
     }
 
     this.browser = await chromium.launch({
       spm_apikey: apiKey,
-      spm_host: 'http://proxy.zyte.com:8011',
+      spm_host: 'http://api.zyte.com:8011',
       headless: false,
       devtools: false,
       slowMo: 100,
@@ -52,6 +56,40 @@ class BeenVerifiedOptout {
     }
   }
 
+  async selectGuestRequestor() {
+    if (!this.page) throw new Error('Page not initialized');
+
+    console.log('2️⃣ Selecting "No, I do not"...');
+    const guestOption = this.page
+      .locator('li[role="option"][data-value="guest"]')
+      .filter({ hasText: 'No, I do not' });
+    const dropdowns = this.page.locator(
+      '[role="combobox"][aria-haspopup="listbox"], [aria-haspopup="listbox"]',
+    );
+
+    await dropdowns.first().waitFor({ state: 'visible', timeout: 80000 });
+
+    let selected = false;
+    const dropdownCount = await dropdowns.count();
+    for (let index = 0; index < dropdownCount; index += 1) {
+      const dropdown = dropdowns.nth(index);
+      if (!(await dropdown.isVisible().catch(() => false))) continue;
+
+      await dropdown.click();
+      if (await guestOption.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await guestOption.click();
+        selected = true;
+        break;
+      }
+      await this.page.keyboard.press('Escape');
+    }
+
+    if (!selected) {
+      throw new Error('Could not select the "No, I do not" guest option');
+    }
+    console.log('✅ Selected "No, I do not"');
+  }
+
   async fillOptoutForm(pii: PersonalInfo) {
     if (!this.page) throw new Error('Page not initialized');
 
@@ -59,9 +97,21 @@ class BeenVerifiedOptout {
     await injectTurnstileScript(this.page);
 
     console.log('1️⃣ Navigating to Beenverified opt-out page...');
-    await loadPageAndSolveTurnstile(this.page, 'https://www.beenverified.com/svc/optout/search/comprehensive_optouts');
+    await loadPageAndSolveTurnstile(
+      this.page,
+      'https://www.beenverified.com/svc/optout/search/comprehensive_optouts',
+      'form#comprehensive-form',
+    );
 
-    await this.page.waitForSelector('//*[@id="fname"]', { timeout: 80000 });
+    // Start waiting before interacting with the form so a fast second render
+    // cannot be missed. The Turnstile helper queues every captured challenge.
+    const secondTurnstilePromise = solveNextTurnstileChallenge(this.page, {
+      timeoutMs: 10000,
+      verbose: true,
+    });
+
+    await this.selectGuestRequestor();
+    await this.page.waitForSelector('//*[@id="fname"]', { state: 'visible', timeout: 80000 });
 
     await this.page.keyboard.press('Tab');
     await this.page.locator('//*[@id="fname"]').fill(pii.firstName);
@@ -87,9 +137,34 @@ class BeenVerifiedOptout {
     await this.page.locator('//*[@id="zip"]').click();
     await this.page.locator('//*[@id="zip"]').fill(pii.zipCode);
 
-    await this.page.waitForTimeout(2000);
+    console.log('🧩 Waiting for the second Cloudflare Turnstile challenge...');
+    await secondTurnstilePromise;
 
-    await this.page.locator('//form[@id="comprehensive-form"]/div/button').click();
+    const continueButton = this.page.locator(
+      '//form[@id="comprehensive-form"]/div/button',
+    );
+    await continueButton.waitFor({ state: 'visible', timeout: 30000 });
+    if (!(await continueButton.isEnabled())) {
+      throw new Error('Continue button is disabled after solving the second Turnstile challenge');
+    }
+
+    await this.page.screenshot({
+      path: 'beenverified-second-turnstile-solved.png',
+      fullPage: true,
+    });
+    await continueButton.click();
+
+    if (/^(1|true|yes)$/i.test(process.env.BEENVERIFIED_STOP_AFTER_CONTINUE || '')) {
+      await this.page.waitForTimeout(3000);
+      await this.page.screenshot({
+        path: 'beenverified-after-continue.png',
+        fullPage: true,
+      });
+      console.log('✅ Continue succeeded; stopping before selecting a result.');
+      return false;
+    }
+
+    return true;
   }
 
   async selectFirstResultAndOptout() {
@@ -146,7 +221,9 @@ class BeenVerifiedOptout {
   async run(pii: PersonalInfo) {
     try {
       await this.launch();
-      await this.fillOptoutForm(pii);
+      const shouldContinue = await this.fillOptoutForm(pii);
+      if (!shouldContinue) return true;
+
       const success = await this.selectFirstResultAndOptout();
 
       await this.page?.waitForTimeout(3000);
@@ -182,7 +259,10 @@ async function main() {
 }
 
 if (require.main === module) {
-  main().catch(console.error);
+  main().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
 }
 
 export { BeenVerifiedOptout, PersonalInfo };

@@ -1,4 +1,4 @@
-import type { Page } from 'playwright';
+import type { ConsoleMessage, Page } from 'playwright';
 import { Solver } from '@2captcha/captcha-solver';
 import { readFileSync } from "fs";
 
@@ -24,6 +24,23 @@ export interface SolveResult {
   attempt?: number;
 }
 
+interface CapturedTurnstileQueue {
+  params: Array<Record<string, any>>;
+  waiters: Array<{
+    resolve: (params: Record<string, any>) => void;
+    reject: (error: Error) => void;
+    timer: ReturnType<typeof setTimeout>;
+  }>;
+  listener: (message: ConsoleMessage) => void;
+}
+
+export interface CapturedTurnstileOptions {
+  timeoutMs?: number;
+  verbose?: boolean;
+}
+
+const capturedTurnstileQueues = new WeakMap<Page, CapturedTurnstileQueue>();
+
 // Custom error to allow caller to distinguish retryable vs fatal 2Captcha issues
 export class CaptchaSolveError extends Error {
   constructor(message: string, public code?: string, public retryable: boolean = false) {
@@ -33,42 +50,184 @@ export class CaptchaSolveError extends Error {
 }
 
 export async function injectTurnstileScript(page: Page) {
+  ensureTurnstileCaptureQueue(page);
   const preloadFile = readFileSync("./playwright-2captcha/utils/cloudflare-turnstile/inject.js", "utf8");
   await page.addInitScript({ content: preloadFile });
 }
 
-export async function loadPageAndSolveTurnstile(page: Page, url: string) {
-    const apiKey = process.env.TWO_CAPTCHA_KEY;
-    if (!apiKey) {
-        throw new Error('Missing TWO_CAPTCHA_KEY in environment. Create a .env file with TWO_CAPTCHA_KEY=your_key');
-    }
-    const solver = new Solver(apiKey);
+export async function loadPageAndSolveTurnstile(
+  page: Page,
+  url: string,
+  readySelector?: string,
+): Promise<void> {
+  await page.goto(url);
 
-  // Here we intercept the console messages to catch the message logged by inject.js script
-    page.on("console", async (msg) => {
-      const txt = msg.text();
-      if (txt.includes("intercepted-params:")) {
-        const params = JSON.parse(txt.replace("intercepted-params:", ""));
-        console.log(params);
-
-        try {
-          console.log(`Solving the captcha...`);
-          const res = await solver.cloudflareTurnstile(params);
-          console.log(`Solved the captcha ${res.id}`);
-          console.log(res);
-          await page.evaluate((token) => {
-            //@ts-ignore
-            cfCallback(token);
-          }, res.data);
-        } catch (e) {
-          console.log('Error while solving the captcha:', e);
-          return process.exit();
-        }
-    } else {
+  if (readySelector) {
+    const ready = await page
+      .locator(readySelector)
+      .first()
+      .isVisible({ timeout: 10000 })
+      .catch(() => false);
+    if (ready) {
+      console.log('✅ Target page loaded without an initial Turnstile challenge');
       return;
     }
+  }
+
+  try {
+    await solveNextTurnstileChallenge(page, {
+      timeoutMs: 30000,
+      verbose: true,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!readySelector || !/execution context was destroyed|cannot find context/i.test(message)) {
+      throw error;
+    }
+
+    await page.waitForLoadState('domcontentloaded', { timeout: 30000 }).catch(() => undefined);
+    const readyAfterNavigation = await page
+      .locator(readySelector)
+      .first()
+      .isVisible({ timeout: 30000 })
+      .catch(() => false);
+    if (!readyAfterNavigation) throw error;
+    console.log('✅ Initial challenge navigation reached the target page');
+  }
+}
+
+export async function solveNextTurnstileChallenge(
+  page: Page,
+  options: CapturedTurnstileOptions = {},
+): Promise<SolveResult> {
+  const apiKey = process.env.TWO_CAPTCHA_KEY;
+  if (!apiKey) {
+    throw new Error('Missing TWO_CAPTCHA_KEY in environment. Create a .env file with TWO_CAPTCHA_KEY=your_key');
+  }
+
+  const { timeoutMs = 10000, verbose = false } = options;
+  let solved: SolveResult;
+
+  try {
+    const params = await waitForNextTurnstileCapture(page, timeoutMs);
+    if (verbose) console.log(`🔑 Captured Turnstile sitekey: ${params.sitekey}`);
+
+    const solver = new Solver(apiKey);
+    if (verbose) console.log('📤 Requesting Turnstile solution from 2Captcha...');
+    const response = await solver.cloudflareTurnstile(params as any);
+    const token = response?.data;
+    if (!token) throw new Error('2Captcha returned no Turnstile token');
+    if (verbose) console.log(`✅ Solved Turnstile challenge ${response.id}`);
+
+    solved = {
+      token,
+      sitekey: String(params.sitekey),
+      params: {
+        action: params.action,
+        cData: params.data,
+        chlPageData: params.pagedata,
+      },
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!/timed out waiting .* for a turnstile challenge/i.test(message)) throw error;
+
+    if (verbose) {
+      console.log('ℹ️ No render event was captured; detecting the embedded Turnstile from the DOM...');
+    }
+    solved = await solveTurnstile(page, {
+      apiKey,
+      siteKeySelector: '[data-sitekey]',
+      pageUrl: page.url(),
+      timeoutSec: 120,
+      verbose,
+    });
+  }
+
+  await injectTurnstileToken(page, solved.token, undefined, undefined, verbose);
+
+  let accepted = false;
+  try {
+    accepted = await verifyTurnstileTokenAccepted(page, {
+      timeoutMs: 10000,
+      verbose,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!/execution context was destroyed|cannot find context/i.test(message)) throw error;
+
+    // A successful interstitial callback navigates to the protected page and
+    // destroys the challenge's execution context before it can be inspected.
+    await page.waitForLoadState('domcontentloaded', { timeout: 30000 }).catch(() => undefined);
+    accepted = true;
+    if (verbose) console.log('✅ Turnstile callback triggered navigation to the protected page');
+  }
+  if (!accepted) {
+    throw new Error('Turnstile token was not accepted by the page');
+  }
+
+  return solved;
+}
+
+function ensureTurnstileCaptureQueue(page: Page): CapturedTurnstileQueue {
+  const existing = capturedTurnstileQueues.get(page);
+  if (existing) return existing;
+
+  const queue: CapturedTurnstileQueue = {
+    params: [],
+    waiters: [],
+    listener: () => undefined,
+  };
+
+  queue.listener = (message: ConsoleMessage) => {
+    const text = message.text();
+    const prefix = 'intercepted-params:';
+    if (!text.includes(prefix)) return;
+
+    try {
+      const params = JSON.parse(text.slice(text.indexOf(prefix) + prefix.length));
+      const waiter = queue.waiters.shift();
+      if (waiter) {
+        clearTimeout(waiter.timer);
+        waiter.resolve(params);
+      } else {
+        queue.params.push(params);
+      }
+    } catch (error) {
+      const waiter = queue.waiters.shift();
+      if (waiter) {
+        clearTimeout(waiter.timer);
+        const details = error instanceof Error ? `: ${error.message}` : '';
+        waiter.reject(new Error(`Could not parse captured Turnstile parameters${details}`));
+      }
+    }
+  };
+
+  page.on('console', queue.listener);
+  capturedTurnstileQueues.set(page, queue);
+  return queue;
+}
+
+function waitForNextTurnstileCapture(
+  page: Page,
+  timeoutMs: number,
+): Promise<Record<string, any>> {
+  const queue = ensureTurnstileCaptureQueue(page);
+  const captured = queue.params.shift();
+  if (captured) return Promise.resolve(captured);
+
+  return new Promise((resolve, reject) => {
+    const waiter = {
+      resolve,
+      reject,
+      timer: setTimeout(() => {
+        const index = queue.waiters.indexOf(waiter);
+        if (index >= 0) queue.waiters.splice(index, 1);
+        reject(new Error(`Timed out waiting ${timeoutMs}ms for a Turnstile challenge`));
+      }, timeoutMs),
+    };
+    queue.waiters.push(waiter);
   });
-  await page.goto(url);
 }
 
 // We now rely on @2captcha/captcha-solver library instead of manual HTTP calls.

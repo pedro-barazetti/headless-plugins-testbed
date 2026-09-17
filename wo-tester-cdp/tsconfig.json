@@ -1,0 +1,17 @@
+{
+  "include": ["./**/*"],
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "CommonJS",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node",
+    "typeRoots": ["./types", "./node_modules/@types", "../node_modules/@types"]
+  },
+  "ts-node": {
+    "files": true,
+    // Skips type checking when running ts-node which makes startup time much faster.
+    "transpileOnly": true
+  }
+}

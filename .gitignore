@@ -6,3 +6,4 @@ dist
 *.csv
 /output
 /samples
+/artifacts/cdp-websocket/
