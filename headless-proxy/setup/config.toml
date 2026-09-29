@@ -86,10 +86,7 @@ api_key = ""
 # Here is documentation on how to build your own filter list:
 # https://adblockplus.org/en/filters
 adblock_lists = [
-  "https://fanboy.co.nz/r/fanboy-ultimate.txt",
-  "https://fanboy.co.nz/fanboy-antifonts.txt",
-  "https://fanboy.co.nz/fanboy-antifacebook.txt",
-  "https://s3.amazonaws.com/lists.disconnect.me/simple_malware.txt"
+  "https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/adblock/light.txt"
 ]
 
 # A list of regular expressions to match hostpath part of URL for direct
