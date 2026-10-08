@@ -1,3 +1,15 @@
+Option 1 (Prebuilt container):
+$ docker pull zytedata/zyte-smartproxy-headless-proxy
+$ docker run --name crawlera-headless-proxy \
+    -p 127.0.0.1:3128:3128 \
+    -p 127.0.0.1:3130:3130 \
+    -e CRAWLERA_HEADLESS_CHOST=api.zyte.com \
+    -e CRAWLERA_HEADLESS_CPORT=8011 \
+    -e CRAWLERA_HEADLESS_APIKEY=ZYTE_API_KEY \
+    zytedata/zyte-smartproxy-headless-proxy
+    
+
+Option 2:
 1. Clone repository: https://github.com/zytedata/zyte-smartproxy-headless-proxy
 
 2. Replace the existing certificate (ca.crt) and configuration file (config.toml) with the files from this directory

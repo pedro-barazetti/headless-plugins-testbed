@@ -44,6 +44,8 @@ Some integrations are still in progress. The repository aims to centralize exper
 ## Available npm scripts
 
 - `npm run playwright-proxy` → Playwright smoke test via proxy
+- `npm run playwright-proxy-csv` → Playwright CSV test via a local proxy
+- `npm run playwright-zyte-api-direct-csv` → Playwright CSV test directly via Zyte API proxy mode
 - `npm run cdp:smoke` → Playwright smoke test via Zyte CDP WebSocket
 - `npm run cdp:freepeopledirectory` → FreePeopleDirectory form test via Zyte CDP WebSocket
 - `npm run cdp:beenverified` → BeenVerified form/CAPTCHA-boundary test via Zyte CDP WebSocket
@@ -166,6 +168,12 @@ These scripts do **not** use the Zyte Smart Proxy plugins. They connect to your 
 - `npm run playwright-proxy`
   - Runs [headless-proxy/playwright_proxy.ts](headless-proxy/playwright_proxy.ts).
   - Launches Chromium via Playwright and navigates through the local proxy.
+- `npm run playwright-proxy-csv`
+  - Runs [headless-proxy/playwright_proxy_csv_input.ts](headless-proxy/playwright_proxy_csv_input.ts).
+  - Reads one CSV file or all CSV files in a directory and uses the local proxy.
+  - Defaults to 8 concurrent pages, retries proxy connection failures up to 3 times
+    with exponential backoff, and saves results under a timestamped
+    `output/playwright-proxy-csv/run_*` directory.
 - `npm run selenium-proxy`
   - Runs [headless-proxy/selenium_proxy.ts](headless-proxy/selenium_proxy.ts).
   - Launches Chrome via Selenium WebDriver with `--proxy-server=...`.
@@ -175,7 +183,53 @@ These scripts do **not** use the Zyte Smart Proxy plugins. They connect to your 
 
 Env vars used (optional overrides):
 
-- These scripts currently use hardcoded defaults in code (`http://localhost:3128`, target URLs, wait timings).
+- `playwright-proxy-csv` accepts `URLS_CSV_PATH`, `PROXY_SERVER`,
+  `MAX_CONCURRENCY`, `NAVIGATION_TIMEOUT_MS`, `NETWORK_IDLE_TIMEOUT_MS`
+  (default 5000), `WAIT_FOR_NETWORK_IDLE`, `PROXY_CONNECTION_MAX_ATTEMPTS`
+  (default 3), `PROXY_RETRY_BASE_DELAY_MS` (default 1000), `HEADLESS`,
+  `OUTPUT_DIR`, and `RESULTS_PATH`. Results include retry counts, failed
+  document and subresource request counts, up to five failed subresource
+  examples, and a basic content check (at least 40 body text characters or an
+  embedded visual element). This is a diagnostic, not proof of a complete
+  render. Results are checkpointed every 100 URLs, and Ctrl+C saves partial
+  results.
+- For separate SPM proxy runs, set `PROXY_SERVER=http://localhost:3128` or
+  `PROXY_SERVER=http://localhost:3228` and use a distinct `OUTPUT_DIR` for each.
+- The single-URL smoke scripts retain hardcoded defaults for their target URLs
+  and timings.
+
+### Playwright directly via Zyte API proxy mode
+
+`npm run playwright-zyte-api-direct-csv` runs
+[headless-proxy/playwright_zyte_api_direct_csv.ts](headless-proxy/playwright_zyte_api_direct_csv.ts)
+against `http://api.zyte.com:8011` with the Zyte API key as the proxy username.
+It does not require the local headless proxy on port 3128.
+
+By default, it reads the 4,620-row render input at
+`output/proxy-comparison-render-2026-09-17/render_urls.csv`, uses concurrency
+8, runs headless, and writes `results.json` under a timestamped
+`output/zyte-api-direct/run_*` directory:
+
+```bash
+npm run playwright-zyte-api-direct-csv
+```
+
+Set `ZYTE_API_KEY` or `API_KEY` before running. Optional overrides are
+`URLS_CSV_PATH`, `ZYTE_API_PROXY_SERVER`, `ZYTE_IP_TYPE`, `MAX_CONCURRENCY`,
+`NAVIGATION_TIMEOUT_MS`, `NETWORK_IDLE_TIMEOUT_MS`, `WAIT_FOR_NETWORK_IDLE`,
+`PROXY_CONNECTION_MAX_ATTEMPTS` (default 3), `PROXY_RETRY_BASE_DELAY_MS`
+(default 1000), `HEADLESS`, `SAVE_SCREENSHOTS`, `OUTPUT_DIR`, and
+`RESULTS_PATH`. Failed proxy connections are retried with exponential backoff.
+Set `ZYTE_IP_TYPE=residential` to send `Zyte-IPType: residential` on browser
+requests. Leave it unset to use Zyte API's default IP type.
+Results include attempt counts, failed document and subresource request counts,
+separate subresource proxy connection and abort counts, up to five failed
+subresource examples, and a basic rendered content check
+(at least 40 body text characters or an embedded visual element). The content
+check is a diagnostic signal, not proof that the intended page rendered.
+`navigationElapsedMs` measures time to DOM content loaded; `elapsedMs` includes
+the network-idle wait, which is capped at 5 seconds by default. Progress is
+saved every 100 completed URLs, and Ctrl+C saves the partial results.
 
 ### Splash + Zyte API proxy mode
 
