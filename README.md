@@ -48,6 +48,8 @@ Some integrations are still in progress. The repository aims to centralize exper
 - `npm run cdp:freepeopledirectory` → FreePeopleDirectory form test via Zyte CDP WebSocket
 - `npm run cdp:beenverified` → BeenVerified form/CAPTCHA-boundary test via Zyte CDP WebSocket
 - `npm run cdp:thatsthem` → That’s Them screenshot test via Zyte CDP WebSocket
+- `npm run cdp:ifood` → Run the converted Goiânia and Salvador iFood address/listing requests via Playwright + CDP
+- `npm run cdp:ifood:puppeteer` → Run the same iFood requests using native Puppeteer + CDP
 - `npm run selenium-proxy` → Selenium smoke test via proxy
 - `npm run selenium-proxy-csv` → Selenium smoke test using URL list input
 - `npm run splash-proxy-test` → Splash + Zyte API proxy compatibility/performance test
@@ -91,6 +93,62 @@ anything by default:
 
 Use `FREEPEOPLEDIRECTORY_PROFILE_URL` and the `BEENVERIFIED_*` variables to
 replace the sample data when you intentionally test a real flow.
+
+### iFood action requests with Playwright + CDP
+
+The original requests are saved under `cdp-websocket/requests/`. The
+[runner](cdp-websocket/ifood.ts) converts their CSS/XPath selectors to Playwright
+locators, converts timeout seconds to milliseconds, and preserves the action
+order and `onError` behavior. Required failures stop the sequence; optional
+“Ver mais” failures are recorded and allow it to continue.
+
+```bash
+npm run cdp:ifood                   # both cities, each in a fresh session
+npm run cdp:ifood -- goiania        # Goiânia only
+npm run cdp:ifood -- salvador       # Salvador only
+```
+
+`API_KEY` is read from `.env`. This runner defaults to the documented
+`https://browser.zyte.com/?ttl=180` endpoint and respects `ZYTE_CDP_ENDPOINT`.
+It maps each request’s `geolocation: "BR"` to `proxy_region=BR` and explicitly
+sets `proxy_type=residential`, including when the endpoint is overridden, as
+described in the [Zyte CDP documentation](https://docs.zyte.com/zyte-api/usage/cdp.html#query-parameters).
+
+Each city saves an action report, rendered HTML (the `browserHtml` equivalent
+from `page.content()`), and a screenshot in a timestamped folder beneath
+`artifacts/cdp-websocket/ifood/`. `summary.json` contains the latest batch.
+Success requires the mandatory actions, a saved address matching the requested
+street/number and selected city, visible restaurants with links for that city,
+and a page clear of access blocks. The command exits with status 1 if either
+city fails; Cloudflare challenge HTML is never counted as a successful result.
+These runs select the supplied delivery addresses in isolated browser sessions.
+
+### iFood with Puppeteer + CDP
+
+The separate [Puppeteer runner](cdp-websocket/ifood-puppeteer.ts) uses the same
+original requests and the installed `puppeteer` package. It always sends
+`proxy_region=BR` and `proxy_type=residential`. Its defaults are a 180-second
+initial selector wait and `ttl=600`; subsequent action timeouts and `onError`
+behavior follow the requests. It runs each city in its own remote browser.
+
+```bash
+npm run cdp:ifood:puppeteer
+npm run cdp:ifood:puppeteer -- goiania
+npm run cdp:ifood:puppeteer -- salvador
+```
+
+It reads `API_KEY` from `.env` and defaults to the WebSocket endpoint from the
+[Zyte Puppeteer example](https://docs.zyte.com/zyte-api/usage/cdp.html#connecting).
+Override it with `ZYTE_PUPPETEER_CDP_ENDPOINT` or `ZYTE_CDP_ENDPOINT`. HTTP
+endpoint discovery preserves authentication and query parameters. Set
+`IFOOD_VERIFICATION_WAIT_SECONDS` and `IFOOD_SESSION_TTL_SECONDS` to tune timing;
+the session lifetime must exceed the verification wait by at least 120 seconds.
+
+Reports, rendered HTML, screenshots, and the latest `summary.json` are saved
+under `artifacts/cdp-websocket/ifood-puppeteer/`. Reports also include the
+navigation response history and whether Cloudflare displayed “Verification
+successful” while the iFood address controls were still missing. The runner
+exits with status 1 when either city does not complete and validate its results.
 
 ## Scripts (details)
 

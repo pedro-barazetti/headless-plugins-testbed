@@ -1,0 +1,169 @@
+{
+  "url": "https://www.ifood.com.br/inicio",
+  "browserHtml": true,
+  "geolocation": "BR",
+  "actions": [
+    {
+      "action": "waitForSelector",
+      "selector": {
+        "type": "xpath",
+        "value": "(//div[contains(@class, 'address-search-input--role-button')])[1]"
+      },
+      "timeout": 10,
+      "onError": "return"
+    },
+    {
+      "action": "click",
+      "selector": {
+        "type": "xpath",
+        "value": "(//div[contains(@class, 'address-search-input--role-button')])[1]"
+      },
+      "onError": "return"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": {
+        "type": "xpath",
+        "value": "(//input[contains(@aria-label, 'Buscar endereço e número') and not(@disabled)])[1]"
+      },
+      "timeout": 10,
+      "onError": "return"
+    },
+    {
+      "action": "type",
+      "selector": {
+        "type": "xpath",
+        "value": "(//input[contains(@aria-label, 'Buscar endereço e número') and not(@disabled)])[1]"
+      },
+      "text": "Av. Portugal, 52 - St. Oeste, Goiânia",
+      "onError": "return"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": {
+        "type": "xpath",
+        "value": "(//ul[contains(@class, 'address-search-list')]/li[not(contains(@class, 'not-found'))]//button[contains(@class, 'btn-address--full-size')])[1]"
+      },
+      "timeout": 12,
+      "onError": "return"
+    },
+    {
+      "action": "click",
+      "selector": {
+        "type": "xpath",
+        "value": "(//ul[contains(@class, 'address-search-list')]/li[not(contains(@class, 'not-found'))]//button[contains(@class, 'btn-address--full-size')])[1]"
+      },
+      "onError": "return"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": {
+        "type": "xpath",
+        "value": "(//button[@label='Confirmar localização' or @aria-label='Confirmar localização' or contains(normalize-space(.), 'Confirmar localização')])[1]"
+      },
+      "timeout": 8,
+      "onError": "return"
+    },
+    {
+      "action": "click",
+      "selector": {
+        "type": "xpath",
+        "value": "(//button[@label='Confirmar localização' or @aria-label='Confirmar localização' or contains(normalize-space(.), 'Confirmar localização')])[1]"
+      },
+      "onError": "return"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": {
+        "type": "css",
+        "value": "input[name=\"complement\"]"
+      },
+      "timeout": 5,
+      "onError": "return"
+    },
+    {
+      "action": "type",
+      "selector": {
+        "type": "css",
+        "value": "input[name=\"complement\"]"
+      },
+      "text": "Casa",
+      "onError": "return"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": {
+        "type": "css",
+        "value": "input[name=\"reference\"]"
+      },
+      "timeout": 5,
+      "onError": "return"
+    },
+    {
+      "action": "type",
+      "selector": {
+        "type": "css",
+        "value": "input[name=\"reference\"]"
+      },
+      "text": "Portao",
+      "onError": "return"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": {
+        "type": "xpath",
+        "value": "(//button[not(@disabled) and (contains(@label, 'Salvar endere') or contains(@aria-label, 'Salvar endere') or contains(normalize-space(.), 'Salvar endere'))])[1]"
+      },
+      "timeout": 3,
+      "onError": "return"
+    },
+    {
+      "action": "click",
+      "selector": {
+        "type": "xpath",
+        "value": "(//button[not(@disabled) and (contains(@label, 'Salvar endere') or contains(@aria-label, 'Salvar endere') or contains(normalize-space(.), 'Salvar endere'))])[1]"
+      },
+      "onError": "return"
+    },
+    {
+      "action": "waitForTimeout",
+      "timeout": 3,
+      "onError": "return"
+    },
+    {
+      "action": "waitForSelector",
+      "selector": {
+        "type": "xpath",
+        "value": "(.//span[contains(@class, 'merchant-v2__name')])[1]"
+      },
+      "timeout": 10,
+      "onError": "return"
+    },
+    {
+      "action": "click",
+      "selector": {
+        "type": "xpath",
+        "value": ".//button[contains(., 'Ver mais')]"
+      },
+      "onError": "continue"
+    },
+    {
+      "action": "waitForTimeout",
+      "timeout": 0.75,
+      "onError": "continue"
+    },
+    {
+      "action": "click",
+      "selector": {
+        "type": "xpath",
+        "value": ".//button[contains(., 'Ver mais')]"
+      },
+      "onError": "continue"
+    },
+    {
+      "action": "waitForTimeout",
+      "timeout": 0.75,
+      "onError": "continue"
+    }
+  ]
+}

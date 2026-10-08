@@ -17,13 +17,15 @@ export interface ChallengeDetails {
   indicators: string[];
 }
 
-export async function connectToZyteCdp(): Promise<ZyteCdpSession> {
+export async function connectToZyteCdp(
+  options: { endpoint?: string } = {},
+): Promise<ZyteCdpSession> {
   const apiKey = process.env.API_KEY;
   if (!apiKey) {
     throw new Error('Missing API_KEY. Add API_KEY=your_key to .env.');
   }
 
-  const endpoint = process.env.ZYTE_CDP_ENDPOINT || DEFAULT_WS_ENDPOINT;
+  const endpoint = options.endpoint || process.env.ZYTE_CDP_ENDPOINT || DEFAULT_WS_ENDPOINT;
   const headers = {
     Authorization: `Basic ${Buffer.from(`${apiKey}:`).toString('base64')}`,
   };

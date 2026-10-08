@@ -27,7 +27,9 @@
     "voterrecords": "ts-node playwright-2captcha/voterrecords.ts",
     "nuwber": "ts-node playwright-2captcha/nuwber.ts",
     "platpat": "ts-node puppeteer/platpat.ts",
-    "informdata": "ts-node puppeteer/informdata_courts.ts"
+    "informdata": "ts-node puppeteer/informdata_courts.ts",
+    "cdp:ifood": "ts-node cdp-websocket/ifood.ts",
+    "cdp:ifood:puppeteer": "ts-node cdp-websocket/ifood-puppeteer.ts"
   },
   "keywords": [],
   "author": "",
