@@ -104,7 +104,14 @@ export async function saveScreenshot(page: Page, name: string): Promise<string> 
 
 export async function closeZyteCdp(session: ZyteCdpSession | null): Promise<void> {
   if (!session) return;
-  await session.browser.close().catch(() => undefined);
+  try {
+    const cdp = await session.context.newCDPSession(session.page);
+    await cdp.send('Browser.close');
+  } catch {
+    console.warn('Could not explicitly close Zyte CDP session; it will end at its TTL.');
+  } finally {
+    await session.browser.close().catch(() => undefined);
+  }
 }
 
 function maskEndpoint(endpoint: string): string {

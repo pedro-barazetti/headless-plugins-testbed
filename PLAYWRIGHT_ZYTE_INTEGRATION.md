@@ -1,6 +1,8 @@
 # Integrating Zyte API with Playwright
 
-## Recommended architecture
+> **70-row evaluation update (September 2026):** The local headless-proxy route described below had persistent failures on 23 source rows in the recorded comparison. Playwright over Zyte CDP succeeded on those 23 in one pass. See the [test summary](70_ROW_TEST_SUMMARY.md) and [CDP migration guide](PLAYWRIGHT_TO_ZYTE_CDP_MIGRATION.md) when choosing an integration for these sources. The proxy setup below remains a description of that route, not the recommended migration path for this tested workload.
+
+## Local headless-proxy architecture
 
 Instead of connecting Playwright directly to `api.zyte.com:8011`, run the
 [Zyte SmartProxy Headless Proxy](https://github.com/zytedata/zyte-smartproxy-headless-proxy)

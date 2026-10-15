@@ -209,7 +209,7 @@ async function main() {
   try {
     const context = await browser.newContext({
       ignoreHTTPSErrors: true,
-      userAgent: USER_AGENT,
+      //userAgent: USER_AGENT,
       viewport: { width: 1366, height: 768 },
     });
 
