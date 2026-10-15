@@ -101,7 +101,9 @@ replace the sample data when you intentionally test a real flow.
 The original requests are saved under `cdp-websocket/requests/`. The
 [runner](cdp-websocket/ifood.ts) converts their CSS/XPath selectors to Playwright
 locators, converts timeout seconds to milliseconds, and preserves the action
-order and `onError` behavior. Required failures stop the sequence; optional
+order and `onError` behavior. The initial selector wait defaults to 180 seconds
+to allow verification to complete; subsequent waits use the original request
+timeouts. Required failures stop the sequence; optional
 “Ver mais” failures are recorded and allow it to continue.
 
 ```bash
@@ -111,7 +113,11 @@ npm run cdp:ifood -- salvador       # Salvador only
 ```
 
 `API_KEY` is read from `.env`. This runner defaults to the documented
-`https://browser.zyte.com/?ttl=180` endpoint and respects `ZYTE_CDP_ENDPOINT`.
+`https://browser.zyte.com/` endpoint and respects `ZYTE_CDP_ENDPOINT`.
+It applies a 600-second session lifetime, including when the configured endpoint
+has a different `ttl`. Both iFood runners read `IFOOD_VERIFICATION_WAIT_SECONDS`
+and `IFOOD_SESSION_TTL_SECONDS` from `.env` to override these defaults; the
+session must last at least 120 seconds longer than the verification wait.
 It maps each request’s `geolocation: "BR"` to `proxy_region=BR` and explicitly
 sets `proxy_type=residential`, including when the endpoint is overridden, as
 described in the [Zyte CDP documentation](https://docs.zyte.com/zyte-api/usage/cdp.html#query-parameters).
@@ -130,7 +136,8 @@ These runs select the supplied delivery addresses in isolated browser sessions.
 The separate [Puppeteer runner](cdp-websocket/ifood-puppeteer.ts) uses the same
 original requests and the installed `puppeteer` package. It always sends
 `proxy_region=BR` and `proxy_type=residential`. Its defaults are a 180-second
-initial selector wait and `ttl=600`; subsequent action timeouts and `onError`
+initial selector wait and `ttl=600`, using the same timing configuration as the
+Playwright runner; subsequent action timeouts and `onError`
 behavior follow the requests. It runs each city in its own remote browser.
 
 ```bash

@@ -3,6 +3,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import puppeteer, { Browser, Page } from 'puppeteer';
+import { sessionTtlSeconds, verificationWaitSeconds } from './ifoodTiming';
 import goianiaRequest from './requests/actions-goiania-2.json';
 import salvadorRequest from './requests/actions-salvador-2.json';
 
@@ -64,20 +65,7 @@ type Report = {
 
 const requests = { goiania: goianiaRequest, salvador: salvadorRequest };
 const artifactRoot = join(process.cwd(), 'artifacts', 'cdp-websocket', 'ifood-puppeteer');
-const verificationWaitSeconds = seconds('IFOOD_VERIFICATION_WAIT_SECONDS', 180, 1, 1800);
-const sessionTtlSeconds = seconds('IFOOD_SESSION_TTL_SECONDS', 600, 15, 3600);
 const actionTimeout = 10_000;
-if (sessionTtlSeconds < verificationWaitSeconds + 120) {
-  throw new Error('IFOOD_SESSION_TTL_SECONDS must exceed the verification wait by at least 120 seconds.');
-}
-
-function seconds(name: string, fallback: number, min: number, max: number): number {
-  const value = Number(process.env[name] ?? fallback);
-  if (!Number.isInteger(value) || value < min || value > max) {
-    throw new Error(name + ' must be an integer between ' + min + ' and ' + max + '.');
-  }
-  return value;
-}
 
 function message(error: unknown): string {
   let text = (error instanceof Error ? error.message : String(error)).replace(/\u001b\[[0-9;]*m/g, '');

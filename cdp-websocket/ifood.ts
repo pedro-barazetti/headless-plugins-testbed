@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Locator, Page } from 'playwright';
+import { sessionTtlSeconds, verificationWaitSeconds } from './ifoodTiming';
 import goianiaRequest from './requests/actions-goiania-2.json';
 import salvadorRequest from './requests/actions-salvador-2.json';
 import {
@@ -36,6 +37,7 @@ type ActionResult = {
   status: 'success' | 'error' | 'skipped';
   onError: 'return' | 'continue';
   durationMs: number;
+  timeoutMs?: number;
   error?: string;
 };
 type Evidence = {
@@ -57,6 +59,8 @@ type Report = {
   endpoint: string;
   proxyRegion: string;
   proxyType: 'residential';
+  verificationWaitSeconds: number;
+  sessionTtlSeconds: number;
   httpStatus: number | null;
   finalUrl: string | null;
   success: boolean;
@@ -80,7 +84,7 @@ const requests: Record<City, Request> = {
 };
 const cityNames: Record<City, string> = { goiania: 'Goiânia', salvador: 'Salvador' };
 const artifactRoot = join(process.cwd(), 'artifacts', 'cdp-websocket', 'ifood');
-const defaultEndpoint = 'https://browser.zyte.com/?ttl=180';
+const defaultEndpoint = 'https://browser.zyte.com/';
 const actionTimeout = 10_000;
 
 function message(error: unknown): string {
@@ -126,9 +130,10 @@ export async function executeActions(
       try {
         switch (action.action) {
           case 'waitForSelector':
+            result.timeoutMs = (offset === 0 ? verificationWaitSeconds : action.timeout ?? 10) * 1_000;
             await locatorFor(page, action.selector).waitFor({
               state: action.selector?.state ?? 'visible',
-              timeout: (action.timeout ?? 10) * 1_000,
+              timeout: result.timeoutMs,
             });
             break;
           case 'click': {
@@ -193,6 +198,7 @@ export async function runCity(city: City): Promise<Report> {
   // Zyte API geolocation refers to the proxy country, not browser GPS coordinates.
   endpoint.searchParams.set('proxy_region', request.geolocation);
   endpoint.searchParams.set('proxy_type', 'residential');
+  endpoint.searchParams.set('ttl', String(sessionTtlSeconds));
   const safeEndpoint = new URL(endpoint);
   safeEndpoint.username = '';
   safeEndpoint.password = '';
@@ -202,6 +208,7 @@ export async function runCity(city: City): Promise<Report> {
   const report: Report = {
     city, expectedAddress, startedAt: new Date(started).toISOString(), durationMs: 0,
     endpoint: safeEndpoint.toString(), proxyRegion: request.geolocation, proxyType: 'residential',
+    verificationWaitSeconds, sessionTtlSeconds,
     httpStatus: null, finalUrl: null, success: false, failureReason: null,
     actions: [], evidence: null,
     validation: {
